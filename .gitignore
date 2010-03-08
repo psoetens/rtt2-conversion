@@ -1,4 +1,6 @@
 .settings
 export
 boost_1_41_0
+Debug
+Release
 
