@@ -347,8 +347,8 @@ void process_ports(const std::string& text, std::string& file1, std::string& fil
 
     // 1: correct addPort instances
     boost::regex e("add(Event)?Port\\(\\s*&\\s*(\\w+)\\s*,\\s*(\"[^\"]*\")\\s*\\)");
-    file1 = boost::regex_replace(file1, e,"add\\1Port( \\2 ).doc(\\4)");
-    file2 = boost::regex_replace(file2, e,"add\\1Port( \\2 ).doc(\\4)");
+    file1 = boost::regex_replace(file1, e,"add\\1Port( \\2 ).doc(\\3)");
+    file2 = boost::regex_replace(file2, e,"add\\1Port( \\2 ).doc(\\3)");
 
     e = boost::regex("add(Event)?Port\\(\\s*&\\s*(\\w+)\\s*\\)");
     file1 = boost::regex_replace(file1, e,"add\\1Port( \\2 )");
@@ -423,10 +423,10 @@ void process_ports(const std::string& text, std::string& file1, std::string& fil
         file = boost::regex_replace(file, boost::regex( "(\\w+).Push\\(\\s*(\\w+)\\s*\\);"), "\\1.write( \\2 );"); // p.Push( x ); -> p.write( x );
 
         // 6: 1-to-1 mappings:
-        file = boost::regex_replace(file, boost::regex( "ReadDataPort"), "InputPort");
-        file = boost::regex_replace(file, boost::regex( "WriteDataPort"), "OutputPort");
-        file = boost::regex_replace(file, boost::regex( "ReadBufferPort"), "InputPort");
-        file = boost::regex_replace(file, boost::regex( "WriteBufferPort"), "OutputPort");
+        file = boost::regex_replace(file, boost::regex( "\\bReadDataPort"), "InputPort");
+        file = boost::regex_replace(file, boost::regex( "\\bWriteDataPort"), "OutputPort");
+        file = boost::regex_replace(file, boost::regex( "\\bReadBufferPort"), "InputPort");
+        file = boost::regex_replace(file, boost::regex( "\\bWriteBufferPort"), "OutputPort");
         if (cont) {
             file1 = file;
             file = file2;
@@ -439,9 +439,9 @@ void process_ports(const std::string& text, std::string& file1, std::string& fil
 void process_events(const std::string& text, std::string& file1, std::string& file2)
 {
     // 1: Rename event type to operation type.
-    boost::regex e("(\b)Event<");
-    file1 = boost::regex_replace(file1, e,"\\1Operation<");
-    file2 = boost::regex_replace(file2, e,"\\1Operation<");
+    boost::regex e("\\bEvent<");
+    file1 = boost::regex_replace(file1, e,"Operation<");
+    file2 = boost::regex_replace(file2, e,"Operation<");
 }
 
 int main(int argc, char** argv) {
@@ -476,6 +476,9 @@ int main(int argc, char** argv) {
         istream_iterator<char> streamend2;
         copy( streambegin2, streamend2, back_inserter( input2 ) );
         file2.close();
+        cout << "Processing "<< argv[1] << " " << argv[2] << endl;
+    } else {
+        cout << "Processing "<< argv[1] << endl;
     }
 
     input = input1 + input2;
@@ -508,37 +511,50 @@ int main(int argc, char** argv) {
         cont = !cont;
 
         // also replace TaskObject and OperationInterface to ServiceProvider:
-        boost::regex tosp("TaskObject");
-        boost::regex oisp("OperationInterface");
+        boost::regex tosp("\\bTaskObject\\b");
+        boost::regex oisp("\\bOperationInterface\\b");
 
         parsed = boost::regex_replace(parsed,tosp,"ServiceProvider");
         parsed = boost::regex_replace(parsed,oisp,"ServiceProvider");
-        parsed = boost::regex_replace(parsed, boost::regex("getObject"),"provides");
-        parsed = boost::regex_replace(parsed, boost::regex("Command.hpp"),"Method.hpp");
-        parsed = boost::regex_replace(parsed, boost::regex("Event.hpp"),"Operation.hpp");
+        parsed = boost::regex_replace(parsed, boost::regex("getObject\\b"),"provides");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bCommand.hpp"),"Method.hpp");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bEvent.hpp"),"Operation.hpp");
 
-        parsed = boost::regex_replace(parsed, boost::regex("getMethod(<.*?>)\\("),"getOperation");
-        parsed = boost::regex_replace(parsed, boost::regex("getCommand(<.*?>)\\("),"getOperation");
-        parsed = boost::regex_replace(parsed, boost::regex("getProperty(<.*?>)\\("),"getProperty");
-        parsed = boost::regex_replace(parsed, boost::regex("getAttribute(<.*?>)\\("),"getAttribute");
-        parsed = boost::regex_replace(parsed, boost::regex("getConstant(<.*?>)\\("),"getConstant");
+        parsed = boost::regex_replace(parsed, boost::regex("getMethod(<.*?>)\\("),"getOperation(");
+        parsed = boost::regex_replace(parsed, boost::regex("getCommand(<.*?>)\\("),"getOperation(");
+        parsed = boost::regex_replace(parsed, boost::regex("getProperty(<.*?>)\\("),"getProperty(");
+        parsed = boost::regex_replace(parsed, boost::regex("getAttribute(<.*?>)\\("),"getAttribute(");
+        parsed = boost::regex_replace(parsed, boost::regex("getConstant(<.*?>)\\("),"getConstant(");
 
         parsed = boost::regex_replace(parsed, boost::regex("addObject"),"addService");
         parsed = boost::regex_replace(parsed, boost::regex("removeObject"),"removeService");
         parsed = boost::regex_replace(parsed, boost::regex("internal/ServiceProvider"),"interface/ServiceProvider");
         parsed = boost::regex_replace(parsed, boost::regex("internal::ServiceProvider"),"interface::ServiceProvider");
+#ifdef SHORT_NOTATION
         parsed = boost::regex_replace(parsed, boost::regex("->methods\\(\\)"),"");
-        parsed = boost::regex_replace(parsed, boost::regex("methods\\(\\)->"),"");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bmethods\\(\\)->"),"");
         parsed = boost::regex_replace(parsed, boost::regex("->commands\\(\\)"),"");
-        parsed = boost::regex_replace(parsed, boost::regex("commands\\(\\)->"),"");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bcommands\\(\\)->"),"");
         parsed = boost::regex_replace(parsed, boost::regex("->attributes\\(\\)"),"");
-        parsed = boost::regex_replace(parsed, boost::regex("attributes\\(\\)->"),"");
-        parsed = boost::regex_replace(parsed, boost::regex("properties\\(\\)->"),"");
+        parsed = boost::regex_replace(parsed, boost::regex("\\battributes\\(\\)->"),"");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bproperties\\(\\)->"),"");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bevents\\(\\)->"),"");
+        parsed = boost::regex_replace(parsed, boost::regex("->events\\(\\)"),"");
+#else
+        parsed = boost::regex_replace(parsed, boost::regex("->methods\\(\\)"),"->provides()");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bmethods\\(\\)->"),"provides()->");
+        parsed = boost::regex_replace(parsed, boost::regex("->commands\\(\\)"),"->provides()");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bcommands\\(\\)->"),"provides()->");
+        parsed = boost::regex_replace(parsed, boost::regex("->attributes\\(\\)"),"->provides()");
+        parsed = boost::regex_replace(parsed, boost::regex("\\battributes\\(\\)->"),"provides()->");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bproperties\\(\\)->"),"properties()->");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bevents\\(\\)->"),"provides()->");
+        parsed = boost::regex_replace(parsed, boost::regex("->events\\(\\)"),"->provides()");
+#endif
         parsed = boost::regex_replace(parsed, boost::regex("addAttribute\\(\\s*&(\\w+)"),"addAttribute( \\1");
         parsed = boost::regex_replace(parsed, boost::regex("addConstant\\(\\s*&(\\w+)"),"addConstant( \\1");
         parsed = boost::regex_replace(parsed, boost::regex("addProperty\\(\\s*&(\\w+)"),"addProperty( \\1");
-        parsed = boost::regex_replace(parsed, boost::regex("events\\(\\)->"),"");
-        parsed = boost::regex_replace(parsed, boost::regex("(\\b)Event<"),"\\1Operation<");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bEvent<"),"Operation<");
         parsed = boost::regex_replace(parsed, boost::regex("MethodRepository::Factory"),"ServiceProvider");
 
         // replace all methods/command objects in an interface with the Operation type:
@@ -547,7 +563,7 @@ int main(int argc, char** argv) {
             parsed = boost::regex_replace(parsed, boost::regex("\\bCommand<(.*?)"+*it),"Operation<\\1"+*it);
         }
         // replace all command objects for calling to method objects:
-        parsed = boost::regex_replace(parsed, boost::regex("(\\b)Command<"),"\\1Method<");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bCommand<"),"Method<");
         if (cont) {
             ofstream ofile1( argv[1] );
             ofile1 << parsed;
