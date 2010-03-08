@@ -549,18 +549,18 @@ int main(int argc, char** argv) {
         // replace all command objects for calling to method objects:
         parsed = boost::regex_replace(parsed, boost::regex("(\\b)Command<"),"\\1Method<");
         if (cont) {
-            //ofstream ofile1( argv[1] );
-            //ofile1 << parsed;
-            //ofile1.close();
-            cout << parsed;
+            ofstream ofile1( argv[1] );
+            ofile1 << parsed;
+            ofile1.close();
+            //cout << parsed;
             if (input2.empty())
                 break;
             parsed = input2;
         } else {
-            //ofstream ofile2( argv[2] );
-            //ofile2 << parsed;
-            //ofile2.close();
-            cout << parsed;
+            ofstream ofile2( argv[2] );
+            ofile2 << parsed;
+            ofile2.close();
+            //cout << parsed;
         }
     } while (cont);
 	return 0;
