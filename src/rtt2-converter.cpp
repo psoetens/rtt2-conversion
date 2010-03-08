@@ -551,9 +551,9 @@ int main(int argc, char** argv) {
         parsed = boost::regex_replace(parsed, boost::regex("\\bevents\\(\\)->"),"provides()->");
         parsed = boost::regex_replace(parsed, boost::regex("->events\\(\\)"),"->provides()");
 #endif
-        parsed = boost::regex_replace(parsed, boost::regex("addAttribute\\(\\s*&(\\w+)"),"addAttribute( \\1");
-        parsed = boost::regex_replace(parsed, boost::regex("addConstant\\(\\s*&(\\w+)"),"addConstant( \\1");
-        parsed = boost::regex_replace(parsed, boost::regex("addProperty\\(\\s*&(\\w+)"),"addProperty( \\1");
+        parsed = boost::regex_replace(parsed, boost::regex("addAttribute\\((\\s*)&(\\w+)"),"addAttribute(\\1\\2");
+        parsed = boost::regex_replace(parsed, boost::regex("addConstant\\((\\s*)&(\\w+)"),"addConstant(\\1\\2");
+        parsed = boost::regex_replace(parsed, boost::regex("addProperty\\((\\s*)&(\\w+)"),"addProperty(\\1\\2");
         parsed = boost::regex_replace(parsed, boost::regex("\\bEvent<"),"Operation<");
         parsed = boost::regex_replace(parsed, boost::regex("MethodRepository::Factory"),"ServiceProvider");
 
