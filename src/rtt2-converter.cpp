@@ -356,7 +356,7 @@ void process_ports(const std::string& text, std::string& file1, std::string& fil
 
     // 2: Detect ambiguous DataPort and BufferPort:
     e = boost::regex("\\bDataPort(<.*?) (\\w+);");
-    vector<string> out_ports;
+    vector<string> out_ports, in_ports;
 
     cont = false;
     boost::smatch what;
@@ -373,7 +373,7 @@ void process_ports(const std::string& text, std::string& file1, std::string& fil
             }
             string type = what[1];
             string name = what[2];
-            cout << "Storing port " << name << endl;
+            cout << "Storing OutPort " << name << endl;
             out_ports.push_back( name ); // store port name.
             start = what[0].second;
         }
@@ -390,8 +390,11 @@ void process_ports(const std::string& text, std::string& file1, std::string& fil
             cout << "Replacing port "<< *it << " as InputPort." <<endl;
             file1 = boost::regex_replace(file1, boost::regex("(\\b)BufferPort(<.*?)"+*it+";"),"\\1InputPort\\2"+*it+";");
             file1 = boost::regex_replace(file1, boost::regex("(\\b)DataPort(<.*?)"+*it+";"),"\\1InputPort\\2"+*it+";");
+            file1 = boost::regex_replace(file1, boost::regex(*it+".ready"),*it+".connected");
             file2 = boost::regex_replace(file2, boost::regex("(\\b)BufferPort(<.*?)"+*it+";"),"\\1InputPort\\2"+*it+";");
             file2 = boost::regex_replace(file2, boost::regex("(\\b)DataPort(<.*?)"+*it+";"),"\\1InputPort\\2"+*it+";");
+            file2 = boost::regex_replace(file2, boost::regex(*it+".ready"),*it+".connected");
+            in_ports.push_back( *it );
             out_ports.erase(it);
             it = out_ports.begin();
         } else {
@@ -418,9 +421,10 @@ void process_ports(const std::string& text, std::string& file1, std::string& fil
         // 5: Always right replaces:
         file = boost::regex_replace(file, boost::regex( "(\\w+)\\s*=\\s*(\\w+).Get\\(\\)"), "\\2.read( \\1 )"); // x = p.Get() -> p.read( x )
         file = boost::regex_replace(file, boost::regex( "(\\w+).Get\\(\\s*(\\w+)\\s*\\);"), "\\1.read( \\2 );"); // p.Get( x ); -> p.read( x );
-        file = boost::regex_replace(file, boost::regex( "(\\w+).Pull\\(\\s*(\\w+)\\s*\\);"), "\\1.read( \\2 );"); // p.Pull( x ); -> p.read( x );
+        file = boost::regex_replace(file, boost::regex( "(\\w+).Pop\\(\\s*(\\w+)\\s*\\);"), "\\1.read( \\2 );"); // p.Pop( x ); -> p.read( x );
+        file = boost::regex_replace(file, boost::regex( "(\\w+).Pop\\(\\s*(\\w+)\\s*\\)"), "\\1.read( \\2 ) == NewData"); // p.Pop( x ) -> p.read( x ) == NewData
         file = boost::regex_replace(file, boost::regex( "(\\w+).Set\\(\\s*(\\w+)\\s*\\);"), "\\1.write( \\2 );"); // p.Set( x ); -> p.write( x );
-        file = boost::regex_replace(file, boost::regex( "(\\w+).Push\\(\\s*(\\w+)\\s*\\);"), "\\1.write( \\2 );"); // p.Push( x ); -> p.write( x );
+        file = boost::regex_replace(file, boost::regex( "(\\w+).Push\\(\\s*(\\w+)\\s*\\)"), "\\1.write( \\2 )"); // p.Push( x ) -> p.write( x )
 
         // 6: 1-to-1 mappings:
         file = boost::regex_replace(file, boost::regex( "\\bReadDataPort"), "InputPort");
@@ -530,6 +534,8 @@ int main(int argc, char** argv) {
         parsed = boost::regex_replace(parsed, boost::regex("removeObject"),"removeService");
         parsed = boost::regex_replace(parsed, boost::regex("internal/ServiceProvider"),"interface/ServiceProvider");
         parsed = boost::regex_replace(parsed, boost::regex("internal::ServiceProvider"),"interface::ServiceProvider");
+
+        parsed = boost::regex_replace(parsed, boost::regex("exportPorts\\(\\);"),"");
 #ifdef SHORT_NOTATION
         parsed = boost::regex_replace(parsed, boost::regex("->methods\\(\\)"),"");
         parsed = boost::regex_replace(parsed, boost::regex("\\bmethods\\(\\)->"),"");
@@ -556,6 +562,8 @@ int main(int argc, char** argv) {
         parsed = boost::regex_replace(parsed, boost::regex("addProperty\\((\\s*)&(\\w+)"),"addProperty(\\1\\2");
         parsed = boost::regex_replace(parsed, boost::regex("\\bEvent<"),"Operation<");
         parsed = boost::regex_replace(parsed, boost::regex("MethodRepository::Factory"),"ServiceProvider");
+        parsed = boost::regex_replace(parsed, boost::regex("BufferPort.hpp"),"Port.hpp");
+        parsed = boost::regex_replace(parsed, boost::regex("DataPort.hpp"),"Port.hpp");
 
         // replace all methods/command objects in an interface with the Operation type:
         for(std::vector<std::string>::iterator it = iface_objects.begin(); it != iface_objects.end(); ++it) {
