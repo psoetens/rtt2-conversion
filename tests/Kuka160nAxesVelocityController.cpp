@@ -180,7 +180,10 @@ using namespace KDL;
                                     "changes position value of axis to the initial position",
                                     "switchposition","recorded switchpositions");
 
-        this->commands()->addCommand(RTT::command("prepareForUse",&MyType::prepareForUse,&MyType::prepareForUseCompleted,this),
+        this->commands()->addCommand(RTT::command("prepareForUse",
+                                                  &MyType::prepareForUse,
+                                                  &MyType::prepareForUseCompleted,
+                                                  this),
                                      "prepares the robot for use"  );
         this->commands()->addCommand(RTT::command("prepareForShutdown",&MyType::prepareForShutdown,&MyType::prepareForShutdownCompleted,this),
                                      "prepares the robot for shutdown"  );
@@ -308,6 +311,8 @@ using namespace KDL;
     {
 
         driveValues_port.Get(driveValues);
+
+        driveValues = driveValues_port.Get();
 
         for (int axis=0;axis<KUKA160_NUM_AXES;axis++) {
             // Set the position and perform checks in joint space.
