@@ -585,6 +585,7 @@ int main(int argc, char** argv) {
         parsed = boost::regex_replace(parsed, boost::regex("MethodRepository::Factory"),"Service");
         parsed = boost::regex_replace(parsed, boost::regex("BufferPort.hpp"),"Port.hpp");
         parsed = boost::regex_replace(parsed, boost::regex("DataPort.hpp"),"Port.hpp");
+        parsed = boost::regex_replace(parsed, boost::regex("ocl/ComponentLoader.hpp"),"ocl/Component.hpp");
 
         // replace all methods/command objects in an interface with the Operation type:
         for(std::vector<std::string>::iterator it = iface_objects.begin(); it != iface_objects.end(); ++it) {
