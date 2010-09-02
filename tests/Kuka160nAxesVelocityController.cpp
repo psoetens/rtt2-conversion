@@ -210,7 +210,9 @@ using namespace KDL;
         attributes()->addAttribute(&chain_attr);
 
 
+        this->scripting()->loadPrograms("foo.txt");
 
+        marshalling()->readProperties("bar.xml");
 
     }
 
