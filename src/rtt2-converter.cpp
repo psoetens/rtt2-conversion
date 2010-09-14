@@ -547,12 +547,12 @@ int main(int argc, char** argv) {
         parsed = boost::regex_replace(parsed, boost::regex("dynamic_cast<ScriptingAccess*>"),"boost::dynamic_pointer_cast<ScriptingService>");
         parsed = boost::regex_replace(parsed, boost::regex("ScriptingAccess"),"ScriptingService");
         parsed = boost::regex_replace(parsed, boost::regex("ScriptingService*"),"ScriptingService::shared_ptr");
-        parsed = boost::regex_replace(parsed, boost::regex("\\bscripting()"),"getProvider<RTT::Scripting>(\"scripting\")");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bscripting\\(\\)"),"getProvider<RTT::Scripting>(\"scripting\")");
 
         parsed = boost::regex_replace(parsed, boost::regex("dynamic_cast<MarshallingAccess*>"),"boost::dynamic_pointer_cast<MarshallingService>");
         parsed = boost::regex_replace(parsed, boost::regex("MarshallingAccess"),"MarshallingService");
         parsed = boost::regex_replace(parsed, boost::regex("MarshallingService*"),"MarshallingService::shared_ptr");
-        parsed = boost::regex_replace(parsed, boost::regex("\\bmarshalling()"),"getProvider<RTT::Marshalling>(\"marshalling\")");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bmarshalling\\(\\)"),"getProvider<RTT::Marshalling>(\"marshalling\")");
 
         parsed = boost::regex_replace(parsed, boost::regex("\\brecovered\\b"),"recover");
 
@@ -585,15 +585,18 @@ int main(int argc, char** argv) {
         parsed = boost::regex_replace(parsed, boost::regex("MethodRepository::Factory"),"Service");
         parsed = boost::regex_replace(parsed, boost::regex("BufferPort.hpp"),"Port.hpp");
         parsed = boost::regex_replace(parsed, boost::regex("DataPort.hpp"),"Port.hpp");
+        parsed = boost::regex_replace(parsed, boost::regex("Method.hpp"),"OperationCaller.hpp");
         parsed = boost::regex_replace(parsed, boost::regex("ocl/ComponentLoader.hpp"),"ocl/Component.hpp");
 
         // replace all methods/command objects in an interface with the Operation type:
         for(std::vector<std::string>::iterator it = iface_objects.begin(); it != iface_objects.end(); ++it) {
-            parsed = boost::regex_replace(parsed, boost::regex("\\bMethod<(.*?)"+*it),"Operation<\\1"+*it);
-            parsed = boost::regex_replace(parsed, boost::regex("\\bCommand<(.*?)"+*it),"Operation<\\1"+*it);
+            parsed = boost::regex_replace(parsed, boost::regex("\\bMethod\\s*<(.*?)"+*it),"Operation<\\1"+*it);
+            parsed = boost::regex_replace(parsed, boost::regex("\\bCommand\\s*<(.*?)"+*it),"Operation<\\1"+*it);
         }
-        // replace all command objects for calling to method objects:
-        parsed = boost::regex_replace(parsed, boost::regex("\\bCommand<"),"OperationCaller<");
+        // replace all remaining command/method objects for calling to method objects:
+        parsed = boost::regex_replace(parsed, boost::regex("\\bCommand\\s*<"),"OperationCaller<");
+        parsed = boost::regex_replace(parsed, boost::regex("\\bMethod\\s*<"),"OperationCaller<");
+        parsed = boost::regex_replace(parsed, boost::regex("\\baddMethod\\("),"addOperationCaller(");
 
         // finally, add the collected headers:
         parsed = boost::regex_replace(parsed, boost::regex("(.*#include .*?\n)"), "\\1" + includes);
