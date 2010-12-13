@@ -17,8 +17,8 @@
 #include "boost/spirit/include/qi_raw.hpp"
 #include "boost/spirit/home/phoenix/bind/bind_function.hpp"
 
-#include "boost/fusion/include/adapt_struct.hpp"
-#include "boost/fusion/include/io.hpp"
+//#include "boost/fusion/include/adapt_struct.hpp"
+//#include "boost/fusion/include/io.hpp"
 #include "boost/fusion/include/tuple.hpp"
 
 #include <ostream>
@@ -390,10 +390,10 @@ void process_ports(const std::string& text, std::string& file1, std::string& fil
             cout << "Replacing port "<< *it << " as InputPort." <<endl;
             file1 = boost::regex_replace(file1, boost::regex("(\\b)BufferPort(<.*?)"+*it+";"),"\\1InputPort\\2"+*it+";");
             file1 = boost::regex_replace(file1, boost::regex("(\\b)DataPort(<.*?)"+*it+";"),"\\1InputPort\\2"+*it+";");
-            file1 = boost::regex_replace(file1, boost::regex(*it+".ready"),*it+".connected");
+            file1 = boost::regex_replace(file1, boost::regex(*it+"\\.ready"),*it+".connected");
             file2 = boost::regex_replace(file2, boost::regex("(\\b)BufferPort(<.*?)"+*it+";"),"\\1InputPort\\2"+*it+";");
             file2 = boost::regex_replace(file2, boost::regex("(\\b)DataPort(<.*?)"+*it+";"),"\\1InputPort\\2"+*it+";");
-            file2 = boost::regex_replace(file2, boost::regex(*it+".ready"),*it+".connected");
+            file2 = boost::regex_replace(file2, boost::regex(*it+"\\.ready"),*it+".connected");
             in_ports.push_back( *it );
             out_ports.erase(it);
             it = out_ports.begin();
@@ -410,8 +410,8 @@ void process_ports(const std::string& text, std::string& file1, std::string& fil
     // 4: Do proper replaces according to our in/out guess:
     for( vector<string>::iterator it = out_ports.begin(); it != out_ports.end(); ++it ) {
         // a Get on an outputport becomes a getLastWrittenValue:
-        file1 = boost::regex_replace(file1, boost::regex(*it + ".Get"), *it + ".getLastWrittenValue");
-        file2 = boost::regex_replace(file2, boost::regex(*it + ".Get"), *it + ".getLastWrittenValue");
+        file1 = boost::regex_replace(file1, boost::regex(*it + "\\.Get"), *it + ".getLastWrittenValue");
+        file2 = boost::regex_replace(file2, boost::regex(*it + "\\.Get"), *it + ".getLastWrittenValue");
     }
 
     cont = false;
@@ -419,12 +419,12 @@ void process_ports(const std::string& text, std::string& file1, std::string& fil
     do {
         cont = !cont;
         // 5: Always right replaces:
-        file = boost::regex_replace(file, boost::regex( "(\\w+)\\s*=\\s*(\\w+).Get\\(\\)"), "\\2.read( \\1 )"); // x = p.Get() -> p.read( x )
-        file = boost::regex_replace(file, boost::regex( "(\\w+).Get\\(\\s*(\\w+)\\s*\\);"), "\\1.read( \\2 );"); // p.Get( x ); -> p.read( x );
-        file = boost::regex_replace(file, boost::regex( "(\\w+).Pop\\(\\s*(\\w+)\\s*\\);"), "\\1.read( \\2 );"); // p.Pop( x ); -> p.read( x );
-        file = boost::regex_replace(file, boost::regex( "(\\w+).Pop\\(\\s*(\\w+)\\s*\\)"), "\\1.read( \\2 ) == NewData"); // p.Pop( x ) -> p.read( x ) == NewData
-        file = boost::regex_replace(file, boost::regex( "(\\w+).Set\\(\\s*(\\w+)\\s*\\);"), "\\1.write( \\2 );"); // p.Set( x ); -> p.write( x );
-        file = boost::regex_replace(file, boost::regex( "(\\w+).Push\\(\\s*(\\w+)\\s*\\)"), "\\1.write( \\2 )"); // p.Push( x ) -> p.write( x )
+        file = boost::regex_replace(file, boost::regex( "(\\w+)\\s*=\\s*(\\w+)\\.Get\\(\\)"), "\\2.read( \\1 )"); // x = p.Get() -> p.read( x )
+        file = boost::regex_replace(file, boost::regex( "(\\w+)\\.Get\\(\\s*(\\w+)\\s*\\);"), "\\1.read( \\2 );"); // p.Get( x ); -> p.read( x );
+        file = boost::regex_replace(file, boost::regex( "(\\w+)\\.Pop\\(\\s*(\\w+)\\s*\\);"), "\\1.read( \\2 );"); // p.Pop( x ); -> p.read( x );
+        file = boost::regex_replace(file, boost::regex( "(\\w+)\\.Pop\\(\\s*(\\w+)\\s*\\)"), "\\1.read( \\2 ) == NewData"); // p.Pop( x ) -> p.read( x ) == NewData
+        file = boost::regex_replace(file, boost::regex( "(\\w+)\\.Set\\(\\s*(\\w+)\\s*\\);"), "\\1.write( \\2 );"); // p.Set( x ); -> p.write( x );
+        file = boost::regex_replace(file, boost::regex( "(\\w+)\\.Push\\(\\s*(\\w+)\\s*\\)"), "\\1.write( \\2 )"); // p.Push( x ) -> p.write( x )
 
         // 6: 1-to-1 mappings:
         file = boost::regex_replace(file, boost::regex( "\\bReadDataPort"), "InputPort");
