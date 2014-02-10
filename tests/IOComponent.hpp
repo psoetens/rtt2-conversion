@@ -53,6 +53,8 @@ namespace OCL
          */
         IOComponent(const std::string& name="IOComponent")
             :  TaskContext( name ),
+               addAnalogInInterface_meth(&IOComponent::addAnalogInInterface,this),
+               addAnalogInInterface_cmd(&IOComponent::addAnalogInInterface,&IOComponent::addAnalogInInterfaceDone,this),
                max_inchannels("MaximumInChannels","The maximum number of virtual analog input channels", 32),
                max_outchannels("MaximumOutChannels","The maximum number of virtual analog output channels", 32),
                inChannelPort( "InputValues", std::vector<double>( max_outchannels.get(), 0.0)  ),
@@ -125,6 +127,9 @@ namespace OCL
             }
         }
 
+        Method<bool(const std::string&, const std::string& )> addAnalogInInterface_meth;
+        Command<bool(const std::string&, const std::string& )> addAnalogInInterface_cmd;
+
         /**
          * @brief Add an AnalogInInterface device interface.
          *
@@ -159,6 +164,8 @@ namespace OCL
             this->exportPorts();
             return true;
         }
+
+        bool addAnalogInInterfaceDone() { return true; }
 
         /**
          * @brief Remove an AnalogInInterface device interface.

@@ -325,8 +325,18 @@ void process_statement(Parser& p, const std::string& regx, const std::string& te
                 if ( result.find(bf::get<0>(*it)) != string::npos )
                     result = result.replace( result.find(bf::get<0>(*it)), bf::get<0>(*it).length() , create_operationDS( bf::get<1>(*it) ) );
             } else {
-                if ( result.find(bf::get<0>(*it)) != string::npos )
+                if ( result.find(bf::get<0>(*it)) != string::npos ) {
+                    // Modify the addOperation call:
                     result = result.replace( result.find(bf::get<0>(*it)), bf::get<0>(*it).length() , create_operation( bf::get<1>(*it) ) );
+                    // Modify the object, if present:
+                    if ( bf::get<1>(*it).is_object ) {
+                        // extend all method/command initialisations in the interface with the ClientThread / OwnThread:
+                        if ( ! bf::get<1>(*it).is_command )
+                            result = boost::regex_replace(result, boost::regex("\\b"+bf::get<1>(*it).name +"\\s*\\((.*?)\\)"),bf::get<1>(*it).name+"(\\1, RTT::ClientThread)");
+                        else
+                            result = boost::regex_replace(result, boost::regex("\\b"+bf::get<1>(*it).name+"\\s*\\((.*?)\\)"),bf::get<1>(*it).name+"(\\1, RTT::OwnThread)");
+                    }
+                }
             }
         }
         if (cont) {
@@ -593,6 +603,7 @@ int main(int argc, char** argv) {
             parsed = boost::regex_replace(parsed, boost::regex("\\bMethod\\s*<(.*?)"+*it),"Operation<\\1"+*it);
             parsed = boost::regex_replace(parsed, boost::regex("\\bCommand\\s*<(.*?)"+*it),"Operation<\\1"+*it);
         }
+        
         // replace all remaining command/method objects for calling to method objects:
         parsed = boost::regex_replace(parsed, boost::regex("\\bCommand\\s*<"),"OperationCaller<");
         parsed = boost::regex_replace(parsed, boost::regex("\\bMethod\\s*<"),"OperationCaller<");

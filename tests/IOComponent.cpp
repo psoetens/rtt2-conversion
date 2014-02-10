@@ -11,6 +11,17 @@ namespace OCL
 
     void IOComponent::createAPI()
     {
+        methods()->addMethod( &addAnalogInInterface_meth,
+                              "Add an AnalogInInterface as an array data port as Method",
+                              "PortName", "The name of the port to create.",
+                              "Inputname", "The name of the AnalogInInterface device to use.");
+
+        commands()->addCommand( &addAnalogInInterface_cmd,
+                                "Add an AnalogInInterface as an array data port as Command",
+                                "PortName", "The name of the port to create.",
+                                "Inputname", "The name of the AnalogInInterface device to use.");
+
+
         // Adding a single channel:
         this->methods()->addMethod( method( "addAnalogInput", &IOComponent::addAnalogInput, this),
                                     "Add an analog input as data port",
