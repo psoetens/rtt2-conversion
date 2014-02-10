@@ -72,6 +72,7 @@ std::vector<std::string> iface_objects;
 ostream& operator<<(ostream& os, const method_reg & m) {
     os << (m.is_ds ? "DS-type" : "Normal");
     os << " name: " << m.name;
+    os << " command: " << m.is_command;
     os << " function: " << m.function;
     os << " caller: " << m.caller;
     os << " descr: " << m.description;
@@ -105,14 +106,17 @@ struct converter : qi::grammar<Iterator,method_reg(), ascii::space_type>
         addmethodds = methodds_match[boost::bind(&converter::found_some, this)] >> method_caller >>',' >> "method_ds(" >> method_name >> ','>> method_function >> ')'>>',' >> description >> *(','>> arg_name >>',' >> arg_description) >>')' >>';';
 
         addcommand = command_match[boost::bind(&converter::found_some, this)] >> command_name >>','>>method_function >> ',' >> completion_function >>','>> method_caller >> -lit(",") >> *(char_ - ',') >>',' >> description >> *(','>> arg_name >>',' >> arg_description) >>')' >>';';
-        addobject  = object_match[boost::bind(&converter::found_some, this)] >> object_name >> -( char_(',')>> description >> *(','>> arg_name >>',' >> arg_description)) >>')' >>';';
+        addobject  = object_match >> object_name >> -( char_(',')>> description >> *(','>> arg_name >>',' >> arg_description)) >>')' >>';';
 
         start = addmethod[phoenix::ref(method.is_ds) = false] | addmethodds[phoenix::ref(method.is_ds) = true] | addcommand[phoenix::ref(method.is_ds) = false] | addobject[phoenix::ref(method.is_ds) = false];
 
         method_match = -(lit("methods")>>'('>>')'>>"->")>> -(lit("RTT") >> "::")>> "addMethod" >> '('>>-(lit("RTT") >> "::")>>"method" >>'(';
         methodds_match = -(lit("methods")>>'('>>')'>>"->")>> "addMethodDS" >> '(';
         command_match = -(lit("commands")>>'('>>')'>>"->")>>-(lit("RTT") >> "::")>> "addCommand" >> '('>>-(lit("RTT") >> "::")>>"command" >>'(';
-        object_match = ( lit("addCommand") | "addMethod" | "addEvent") >> '(' >> '&';
+        object_match = objectc_match | objectm_match | objecte_match;
+        objectc_match = ( lit("addCommand")[boost::bind(&converter::found_some, this)][phoenix::ref(method.is_command) = true]) >> '(' >> '&';
+        objectm_match = ( lit("addMethod")[boost::bind(&converter::found_some, this)]) >> '(' >> '&';
+        objecte_match = ( lit("addEvent")[boost::bind(&converter::found_some, this)]) >> '(' >> '&';
         object_name = qi::raw[ident][boost::bind(&converter::found_object, this,::_1)];
         method_name = qi::raw[quoted][boost::bind(&converter::found_method, this,::_1)];
         command_name = qi::raw[quoted][boost::bind(&converter::found_command, this,::_1)];
@@ -158,6 +162,7 @@ struct converter : qi::grammar<Iterator,method_reg(), ascii::space_type>
         method.is_object=true;
         iface_objects.push_back( s );
         method.name = s;
+        cout << method << endl;
     }
 
     void found_function(boost::iterator_range<Iterator> m) {
@@ -226,7 +231,7 @@ struct converter : qi::grammar<Iterator,method_reg(), ascii::space_type>
     rule_t command_match;
     rule_t completion_function;
 
-    rule_t object_match;
+    rule_t object_match, objectc_match, objectm_match, objecte_match;
     rule_t addobject;
     srule_t object_name;
 
@@ -328,14 +333,14 @@ void process_statement(Parser& p, const std::string& regx, const std::string& te
                 if ( result.find(bf::get<0>(*it)) != string::npos ) {
                     // Modify the addOperation call:
                     result = result.replace( result.find(bf::get<0>(*it)), bf::get<0>(*it).length() , create_operation( bf::get<1>(*it) ) );
-                    // Modify the object, if present:
-                    if ( bf::get<1>(*it).is_object ) {
-                        // extend all method/command initialisations in the interface with the ClientThread / OwnThread:
-                        if ( ! bf::get<1>(*it).is_command )
-                            result = boost::regex_replace(result, boost::regex("\\b"+bf::get<1>(*it).name +"\\s*\\((.*?)\\)"),bf::get<1>(*it).name+"(\\1, RTT::ClientThread)");
-                        else
-                            result = boost::regex_replace(result, boost::regex("\\b"+bf::get<1>(*it).name+"\\s*\\((.*?)\\)"),bf::get<1>(*it).name+"(\\1, RTT::OwnThread)");
-                    }
+                }
+                // Modify the object, if present:
+                if ( bf::get<1>(*it).is_object ) {
+                    // extend all method/command initialisations in the interface with the ClientThread / OwnThread:
+                    if ( ! bf::get<1>(*it).is_command )
+                        result = boost::regex_replace(result, boost::regex("\\b"+bf::get<1>(*it).name +"\\s*\\((\\s*&.*?)\\)"),bf::get<1>(*it).name+"(\\1, RTT::ClientThread)");
+                    else
+                        result = boost::regex_replace(result, boost::regex("\\b"+bf::get<1>(*it).name+"\\s*\\((\\s*&.*?)\\)"),bf::get<1>(*it).name+"(\\1, RTT::OwnThread)");
                 }
             }
         }
@@ -531,7 +536,8 @@ int main(int argc, char** argv) {
 
         parsed = boost::regex_replace(parsed,tosp,"Service");
         parsed = boost::regex_replace(parsed,oisp,"Service");
-        parsed = boost::regex_replace(parsed, boost::regex("getObject\\b"),"provides");
+        // causes many false positives in case of 3rd party libraries...
+        //parsed = boost::regex_replace(parsed, boost::regex("getObject\\b"),"provides");
         parsed = boost::regex_replace(parsed, boost::regex("\\bCommand.hpp"),"OperationCaller.hpp");
         parsed = boost::regex_replace(parsed, boost::regex("\\bEvent.hpp"),"Operation.hpp");
 
@@ -596,7 +602,7 @@ int main(int argc, char** argv) {
         parsed = boost::regex_replace(parsed, boost::regex("BufferPort.hpp"),"Port.hpp");
         parsed = boost::regex_replace(parsed, boost::regex("DataPort.hpp"),"Port.hpp");
         parsed = boost::regex_replace(parsed, boost::regex("Method.hpp"),"OperationCaller.hpp");
-        parsed = boost::regex_replace(parsed, boost::regex("ocl/ComponentLoader.hpp"),"ocl/Component.hpp");
+        parsed = boost::regex_replace(parsed, boost::regex("ocl/ComponentLoader.hpp"),"rtt/Component.hpp");
 
         // replace all methods/command objects in an interface with the Operation type:
         for(std::vector<std::string>::iterator it = iface_objects.begin(); it != iface_objects.end(); ++it) {
